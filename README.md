@@ -10,6 +10,12 @@
 
 ---
 
+## Demo
+
+![Analytics MCP Server Demo](demo.gif)
+
+---
+
 ## Architecture
 
 ```
