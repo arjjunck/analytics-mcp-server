@@ -55,7 +55,7 @@
 ```
 
 **Stack mirrors data teams at Irish MNCs** (Stripe, HubSpot, Workday Dublin):
-`Python 3.13` · `PostgreSQL 18` · `dbt` · `Apache Airflow` · `MCP 2.x` · `asyncpg`
+`Python 3.13` · `PostgreSQL 18` · `dbt` · `Apache Airflow` · `Apache Kafka` · `MCP 2.x` · `asyncpg`
 
 ---
 
@@ -136,6 +136,45 @@ Add to your MCP client config (e.g. `~/.cursor/mcp.json`):
 
 ---
 
+## Real-Time Event Ingestion (Kafka)
+
+```
+kafka_producer.py  ──►  Kafka topic: analytics.events  ──►  kafka_consumer.py
+  (synthetic events)                                           │
+  page_view · click                                           asyncpg INSERT
+  purchase · feature_use                                       │
+                                                         raw.events (PostgreSQL)
+                                                               │
+                                                          dbt mart models
+                                                         (nightly refresh)
+```
+
+### Start Kafka (Docker)
+
+```bash
+docker run -d --name kafka -p 9092:9092 \
+  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+  -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092 \
+  -e KAFKA_ZOOKEEPER_CONNECT="" \
+  -e KAFKA_PROCESS_ROLES=broker \
+  -e KAFKA_NODE_ID=1 \
+  apache/kafka:3.7.0
+```
+
+### Run the pipeline
+
+```bash
+# Terminal 1 — consume events → PostgreSQL
+python kafka_consumer.py
+
+# Terminal 2 — produce synthetic events
+python kafka_producer.py --count 200 --delay 0.1
+```
+
+The consumer writes events to `raw.events` in real time. The dbt nightly run then aggregates them into the analytics marts, which the MCP tools query.
+
+---
+
 ## Data Pipeline
 
 ```
@@ -190,6 +229,7 @@ analytics-mcp-server/
 | Orchestration | Airflow DAG | Most common scheduler at MNCs — 48% of DE roles require it |
 | Schema split | raw / analytics | Medallion architecture pattern used at Stripe, HubSpot |
 | Protocol | MCP 2.x | Latest spec; compatible with Cursor, Windsurf, Zed and others |
+| Event stream | Kafka | Industry-standard message broker; decouples ingestion from storage |
 
 ---
 
