@@ -1,0 +1,20 @@
+name: analytics_mcp
+version: "1.0.0"
+config-version: 2
+
+profile: analytics_mcp
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  analytics_mcp:
+    staging:
+      +materialized: view
+      +schema: raw
+    marts:
+      +materialized: incremental
+      +schema: analytics
